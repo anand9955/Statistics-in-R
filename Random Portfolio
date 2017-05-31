@@ -1,0 +1,77 @@
+# Downloading data for last 1 years from Yahoo!
+stocks <- c("MSFT", "YHOO", "ORCL", "EBAY", "CSCO")
+id <- data.frame()
+portfolio <- data.frame()
+
+for (i in stocks) 
+{
+	today = as.numeric(format(Sys.Date(), "%d"))
+	month = as.numeric(format(Sys.Date(), "%m"))
+	year = as.numeric(format(Sys.Date(), "%Y"))
+	a = month - 1
+	b = today
+	c = year - 1
+	d = a
+	e = b
+	f = year
+	ticker = i
+	url = paste("https://chart.finance.yahoo.com/table.csv?s=",ticker,"&a=",a,"&b=",b,"&c=",c,"&d=",d,"&e=",e,"&f=",f,"&g=m&ignore=.csv", sep="")
+
+	x <- read.csv(url(url, method = "libcurl"))
+	assign(i, x)
+
+#Calculating monthly returns for the last 1 year
+	dates <- as.Date(x[1:12, "Date"])
+	dc1 <- x[1:12,"Adj.Close"]
+	dc2 <- x[2:13,"Adj.Close"]
+	r = round((dc1-dc2)/dc2*100, 3)
+	returns <- data.frame(r)
+	r_nam <- paste("Return", i, sep="_")
+	colnames(returns) <- c(r_nam)
+	id <- data.frame(c(id, returns))
+}
+
+Number_of_possible_portfolios = choose(5, 3)
+Number_of_possible_portfolios
+p_nam = colnames(id)
+m = combn(p_nam, 3)
+
+for (j in 1:ncol(m))
+{
+	selection = m[,j]
+	p_return = (id[selection[1]]+id[selection[2]]+id[selection[3]])/3
+	w_nam <- paste(substr(selection[1], 8, 12),substr(selection[2], 8, 12),substr(selection[3], 8, 12), sep="-")
+	colnames(p_return) <- w_nam
+	portfolio <- data.frame(c(portfolio,p_return))
+}
+
+#Time Series Plot for cumulative return
+cum_ret <- cumsum(portfolio)
+plot.ts(cum_ret)
+
+
+#Displaying statistics on graph
+#Mean
+xbar = colMeans(portfolio)
+xbar
+
+#Median
+M = apply(portfolio, 2, median)
+M
+
+#Standard Deviation
+s = apply(portfolio, 2, sd)
+s
+
+abline(h=xbar,col = "blue")
+text(xbar, 80, "Mean", col = "blue")
+abline(h=M, col = "red")
+text(M, 65, "Median", col = "red")
+abline(h=xbar+s, col = "darkgreen")
+text(xbar+s, 50, "xbar + s", col = "darkgreen")
+abline(h=xbar-s, col = "darkgreen")
+text(xbar-s, 50, "xbar - s", col = "darkgreen")
+
+#Variance
+variance_of_all_portfolios = (sd(xbar))^2
+variance_of_all_portfolios
